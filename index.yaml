@@ -2,11 +2,11 @@ apiVersion: v1
 entries:
   mediawiki-backup:
   - apiVersion: v2
-    appVersion: 0.0.1
-    created: "2022-09-11T21:38:18.591323+01:00"
+    appVersion: v0.1.0
+    created: "2022-09-11T21:50:05.291468+01:00"
     description: 'A simple CronJob based backup for MediaWiki.  This chart will backup
       both the MariaDB database and file uploads from MediaWiki. '
-    digest: 7a5d6c333a6dfee2166be54a1d2f9f4bb24bbcee0f6007a3cec1e1e8b6c36d2a
+    digest: 4b515f6689b78943e1e7314cac0637269e3d4525b02dc22cafc30e04fca4c6f1
     home: https://github.com/fernferret/mediawiki-backup
     maintainers:
     - email: fernferret@gmail.com
@@ -19,4 +19,4 @@ entries:
     urls:
     - https://fernferret.github.io/mediawiki-backup/mediawiki-backup-0.1.0.tgz
     version: 0.1.0
-generated: "2022-09-11T21:38:18.590453+01:00"
+generated: "2022-09-11T21:50:05.290702+01:00"

@@ -9,7 +9,7 @@ description: |
 
 type: application
 version: "0.1.0"
-appVersion: "0.0.1"
+appVersion: "v0.1.0"
 
 home: https://github.com/fernferret/mediawiki-backup
 sources:
