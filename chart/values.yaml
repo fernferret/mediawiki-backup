@@ -1,0 +1,180 @@
+
+backupTarget:
+  # -- **REQUIRED**: This argument will be passed to `kubectl get pods -l
+  # <labelSelector>` to get the name of the mediawiki pod to use for backup. If
+  # the `labelSelector` returns more than one pod, the first is used. Example:
+  # `app.kubernetes.io/name=mediawiki`
+  labelSelector: "app.kubernetes.io/name=mediawiki"
+
+  # -- Set the number of retries passed to kubectl when performing backups
+  retries: 1000
+
+backup:
+  mariadb:
+    # -- Set the mariadb hostname, can be a service name.
+    host: "my-mediawiki"
+
+    # -- Set the port to connect to mariadb on
+    port: 3306
+
+    # -- Set the username used to connect to the MariaDB instance
+    username: "mediawiki-user"
+
+    # -- Set the name of the database inside MariaDB to be backed up
+    dbName: "mediawiki-database"
+
+    passwordSecret:
+      # -- Set the name of the secret in the current namespace that contains the
+      # password use to connect to MariaDB
+      name: "mediawiki-credentials"
+
+      # -- Set the key inside the secret current namespace that contains the
+      # password use to connect to MariaDB
+      key: "mariadb-password"
+
+  # -- Set the directory that contains the uploads, skins and other files you
+  # wish to backup from MediaWiki. If you're using the Bitnami chart, this
+  # should be /bitnami/
+  path: /bitnami/
+
+# ┌───────── minute (0 - 59)
+# │ ┌───────── hour (0 - 23)
+# │ │ ┌───────── day of the month (1 - 31)
+# │ │ │ ┌───────── month (1 - 12)
+# │ │ │ │ ┌───────── day of the week (0 - 6) (Sunday to Saturday;
+# │ │ │ │ │                               7 is also Sunday on some systems)
+# │ │ │ │ │                               OR sun, mon, tue, wed, thu, fri, sat
+# │ │ │ │ │
+# * * * * *
+#
+# -- Set the schedule for when backups should run. The default value will run at
+# `0100` each day.
+schedule: '0 1 * * *'
+
+# -- Set the pod's restart policy, for cron jobs you likely want this set to
+# `Never`, as restarts will be handled by the Job Controller.
+restartPolicy: Never
+
+# -- Set the number of pods that will be run before considering the Job failed.
+backoffLimit: 6
+
+# -- Set the CronJob's `concurrencyPolicy`, see `kubectl explain
+# cronjob.spec.concurrencyPolicy` for details. For backups you likely don't want
+# these running concurrently, so you should set `Forbid` (this chart's
+# default).
+concurrencyPolicy: Forbid
+
+# -- Set the number of failed backup jobs to keep around.
+failedJobsHistoryLimit: 1
+
+# -- Set the number of successful backup jobs to keep around.
+successfulJobsHistoryLimit: 3
+
+# -- If set, no new cron jobs are executed, does not affect the current run.
+suspend: false
+
+persistence:
+  # -- Set to enable persistent backups. **WARNING:** not enabling persistence
+  # means your backups won't be saved after the backup job finished. **Only use
+  # for testing.**
+  enabled: false
+  # -- The storage class to use if `persistence.mode`` is pvc
+  storageClassName: ""
+  # -- Set the persistence mode, this can be either `pvc` or `managed-pv`.
+  # See the README.md for more info on persistence mode.
+  mode: "pvc"
+  # * pvc - Create a PVC with a storageClassName and let kubernetes allocate
+  #         the storage
+  # * managed-pv - Create a PVC and PV for local storage. You need to set
+  #                persistence.managedPv args too.
+
+  # Set managed PersistentVolume settings if the `persistence.mode == "managed-pv"`
+  managedPv:
+    # -- Set the node that the created local PersistentVolume will reside on.
+    node: ""
+    # -- Set the path on the disk to use for backups. You must make this path yourself.
+    path: ""
+
+image:
+  # -- Set the image repository to use when creating pods
+  repository: ghcr.io/fernferret/mediawiki-backup
+
+  # -- Set the `imagePullPolicy` to use when creating pods, see
+  # https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy
+  pullPolicy: IfNotPresent
+
+  # -- Overrides the image tag whose default is the chart appVersion.
+  tag: ""
+
+# -- Set the imagePullSecrets used to pull the container from a registry, see:
+# https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#create-a-pod-that-uses-your-secret
+imagePullSecrets: []
+
+# -- Set the `nameOverride`, this will be used in place of the `.Chart.Name`
+nameOverride: ""
+# -- Set the `fullnameOverride`, this will be used in all places that need a name
+# of the chart
+fullnameOverride: ""
+
+serviceAccount:
+  # -- Specifies whether a service account should be created, a service account
+  # is used by the pod to perform a `kubectl cp` of the uploads directory within
+  # mediawiki
+  create: true
+  # -- Set annotations to add to the service account
+  annotations: {}
+  # -- The name of the service account to use. If not set and create is true, a
+  # name is generated using the fullname template
+  name: ""
+
+rbac:
+  # -- If false, do not create role and role binding. NOTE: file backups will
+  # not work unless RBAC is setup properly as this chart utilizes the kubectl
+  # cp function to perform backup of the uploads dir.
+  create: true
+
+# -- Set arbitrary annotations on the pod
+podAnnotations: {}
+
+# -- Set the security context for the  pod for the backup
+# job, see:
+# https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
+podSecurityContext: {}
+  # fsGroup: 2000
+
+# -- Set the security context for the container within the pod for the backup
+# job, see:
+# https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+# -- Set resources for the pod created for every backup job instantiation, see
+# https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+# -- Set the pod `nodeSelector`, see
+# https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#nodeselector
+nodeSelector: {}
+
+# -- Set the pod `tolerations`, see
+# https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+tolerations: []
+
+# -- Set the pod `affinity`, see
+# https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/#affinity-and-anti-affinity
+affinity: {}

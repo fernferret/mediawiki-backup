@@ -1,0 +1,19 @@
+{{- if .Values.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "mediawiki-backup.fullname" . }}
+  labels:
+    {{- include "mediawiki-backup.labels" . | nindent 4 }}
+spec:
+  resources:
+    requests:
+      storage: 8Gi
+  {{- if eq .Values.persistence.mode "managed-pv" }}
+  storageClassName: {{ .Release.Namespace }}-{{ include "mediawiki-backup.fullname" . }}
+  {{- else if .Values.persistence.storageClassName }}
+  storageClassName: {{ .Values.persistence.storageClassName | quote }}
+  {{- end }}
+  accessModes:
+    - ReadWriteOnce
+{{- end }}

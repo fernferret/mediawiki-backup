@@ -1,0 +1,26 @@
+{{- if eq .Values.persistence.mode "managed-pv" }}
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Release.Namespace }}-{{ include "mediawiki-backup.fullname" . }}
+  labels:
+    {{- include "mediawiki-backup.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 8Gi
+  local:
+    # path: /mnt/ldata1/k8s_local_storage/minio-s3d0
+    path: {{ required "'path' is required if mode is managed-pv" .Values.persistence.managedPv.path }}
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - {{ required "'node' is required if mode is managed-pv" .Values.persistence.managedPv.node }}
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: {{ .Release.Namespace }}-{{ include "mediawiki-backup.fullname" . }}
+{{ end }}

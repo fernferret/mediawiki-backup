@@ -1,0 +1,84 @@
+{{ template "chart.header" . }}
+{{ template "chart.deprecationWarning" . }}
+
+{{ template "chart.badgesSection" . }}
+
+{{ template "chart.description" . }}
+
+## TL;DR
+
+```console
+$ helm repo add mediawiki-backup https://fernferret.github.io/mediawiki-backup
+$ helm install my-release mediawiki-backup/mediawiki-backup
+```
+
+{{ template "chart.homepageLine" . }}
+
+## About
+
+I wanted a very simple/flexible backup cron job for MediaWiki to
+replace my old shell script that I was running with `cron`. Since I'd moved my
+local MediaWiki into Kubernetes, I decided to build this chart.
+
+It should work with any flavor of MediaWiki in Kubernetes as long as it is
+indeed running inside kubernetes. This is because the `uploads` backup is done
+via a `kubectl cp` command. The database can be hosted externally.
+
+It uses a very simple alpine based container that includes `kubectl`,
+`mysqldump` and `bash`.
+
+It's recommended you run this as non-root as you really dont' need to run it as
+root. See the `Example` section for a complete values file that acomplishes
+this.
+
+## Example
+
+Here's my values file that I use with the [Bitnami MediaWiki
+chart](https://artifacthub.io/packages/helm/bitnami/mediawiki).
+
+```yaml
+# helm diff upgrade wiki-backup -f my-mediawiki-backup.yaml -n wiki mediawiki-backup/mediawiki-backup
+
+fullnameOverride: wiki-backup
+
+persistence:
+  enabled: true
+  mode: "managed-pv"
+  managedPv:
+    node: node001
+    path: /mnt/data1/mediawiki_backups
+
+securityContext:
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+podSecurityContext:
+  runAsNonRoot: true
+  fsGroup: 1000
+
+backupTarget:
+  labelSelector: app.kubernetes.io/name=mediawiki
+
+backup:
+  mariadb:
+    host: "mediawiki-mariadb"
+    username: "bn_mediawiki"
+    dbName: "bitnami_mediawiki"
+    passwordSecret:
+      name: mediawiki-creds
+      key: mariadb-password
+
+  path: /bitnami/
+```
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.sourcesSection" . }}
+
+{{ template "chart.requirementsSection" . }}
+
+{{ template "chart.valuesSection" . }}

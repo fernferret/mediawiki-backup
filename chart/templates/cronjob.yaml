@@ -1,0 +1,180 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "mediawiki-backup.fullname" . }}
+  labels:
+    {{- include "mediawiki-backup.labels" . | nindent 4 }}
+spec:
+  suspend: {{ .Values.suspend }}
+  schedule: {{ .Values.schedule | quote }}
+  concurrencyPolicy: {{ .Values.concurrencyPolicy | quote }}
+  failedJobsHistoryLimit: {{ .Values.failedJobsHistoryLimit }}
+  successfulJobsHistoryLimit: {{ .Values.successfulJobsHistoryLimit }}
+  jobTemplate:
+    metadata:
+      name: {{ include "mediawiki-backup.fullname" . }}
+      labels:
+        {{- include "mediawiki-backup.selectorLabels" . | nindent 8 }}
+    spec:
+      backoffLimit: {{ .Values.backoffLimit }}
+      template:
+        metadata:
+          {{- with .Values.podAnnotations }}
+          annotations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          labels:
+            {{- include "mediawiki-backup.selectorLabels" . | nindent 12 }}
+        spec:
+          restartPolicy: {{ .Values.restartPolicy | quote }}
+          {{- with .Values.imagePullSecrets }}
+          imagePullSecrets:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ include "mediawiki-backup.serviceAccountName" . }}
+          {{- with .Values.podSecurityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          enableServiceLinks: False
+          containers:
+            - name: {{ .Chart.Name }}
+              {{- with .Values.securityContext }}
+              securityContext:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              {{- with .Values.resources }}
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+              {{- end }}
+              command:
+                - bash
+              args:
+                - -c
+                - |
+                  # Print all commands as they're run
+                  # NOTE: The { ... } 2> /dev/null is a neat trick to avoid
+                  # seeing the echo commands from
+                  # https://superuser.com/a/1141026 
+                  set -x
+                  {{- if .Values.debug }}
+                  echo "Debug mode, Sleeping Forever instead of running backups"
+                  sleep infinity
+
+                  # ------------------------------------------------------------
+                  {{- end }}
+
+                  # ------------------------------------------------------------
+
+                  # Cleanup any old "wip_*" folders
+                  {
+                    echo ""
+                    echo "$(date) Finding and removing any old and incomplete backups..."
+                  } 2> /dev/null
+                  find /backup -name 'wip_*' -type d | xargs -I WIP rm -rf WIP
+
+                  # ------------------------------------------------------------
+
+                  {
+                    echo ""
+                    echo "$(date) Making backup dir and setting up the working dir"
+                  } 2> /dev/null
+                  backupname="backup_$(date +%Y%m%d_%H%M%S)"
+                  workdir="/backup/wip_${backupname}"
+                  backupdir="${workdir}/backup"
+                  mkdir -p $backupdir || exit 1
+                  cd $backupdir || exit 1
+
+                  # ------------------------------------------------------------
+
+                  {
+                    echo ""
+                    echo "$(date) Performing mysqldump:"
+                  } 2> /dev/null
+                  mysqldump -h $MYSQL_HOST -P $MYSQL_TCP_PORT -u $MARIADB_USERNAME {{ .Values.backup.mariadb.dbName }} | gzip -c > backup.sql
+                  mysqldump_result="$?"
+
+                  {
+                    echo ""
+                    echo "$(date) Check for failure in mysql dump command"
+                  } 2> /dev/null
+
+                  if [ "$mysqldump_result" != "0" ]; then
+                    echo "$(date) Failed to perform mysqldump"
+                    exit 1
+                  fi
+
+                  # ------------------------------------------------------------
+
+                  {
+                    echo ""
+                    echo "$(date) Performing backup of mediwiki assets from pod '${pod}'"
+                  } 2> /dev/null
+
+                  # Find out the pod name of the mediawiki install
+                  pod=$(kubectl get pods -l {{ .Values.backupTarget.labelSelector }} -o jsonpath='{$.items[0].metadata.name}')
+
+                  # retries can be used for large files and is cumulative 
+                  kubectl cp --retries 1000 $pod:{{ .Values.backup.path }} . || exit 1
+
+                  # ------------------------------------------------------------
+
+                  {
+                    echo ""
+                    echo "$(date) tar & compress backup as /backup/${backupname}.tar.gz"
+                  } 2> /dev/null
+
+                  cd "${workdir}"
+                  tar czf "../${backupname}.tar.gz" "backup" || exit 1
+
+                  # ------------------------------------------------------------
+
+                  {
+                    echo ""
+                    echo "$(date) Done with backup, removing temp files in ${workdir}"
+                  } 2> /dev/null
+
+                  rm -rf "${workdir}"
+              volumeMounts:
+                - name: backup-data
+                  mountPath: /backup
+              env:
+                # This is set intentionally as MYSQL_HOST, see:
+                # https://mariadb.com/kb/en/mariadb-environment-variables/ 
+                - name: MYSQL_HOST
+                  value: {{ .Values.backup.mariadb.host | quote }}
+                # This is set intentionally as MYSQL_TCP_PORT, see:
+                # https://mariadb.com/kb/en/mariadb-environment-variables/ 
+                - name: MYSQL_TCP_PORT
+                  value: {{ .Values.backup.mariadb.port | quote }}
+                - name: MARIADB_USERNAME
+                  value: {{ .Values.backup.mariadb.username | quote }}
+                # This is set intentionally as MYSQL_PWD, see:
+                # https://mariadb.com/kb/en/mariadb-environment-variables/ 
+                - name: MYSQL_PWD
+                  valueFrom: 
+                    secretKeyRef:
+                      name: {{ .Values.backup.mariadb.passwordSecret.name | quote }}
+                      key: {{ .Values.backup.mariadb.passwordSecret.key | quote }}
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumes:
+            - name: backup-data
+              {{- if .Values.persistence.enabled }}
+              persistentVolumeClaim:
+                claimName: {{ include "mediawiki-backup.fullname" . }}
+              {{- else }}
+              emptyDir: {}
+              {{- end }}
