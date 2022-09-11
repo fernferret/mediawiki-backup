@@ -4,13 +4,15 @@ docs:
 	# Uses external dependency helm-docs
 	helm-docs
 
+VER := $(shell git describe --abbrev=0 --tags)
+
 container:
 	# Uses external dependency helm-docs
-	docker build . -t ghcr.io/fernferret/mediawiki-backup:latest
+	docker build . -t ghcr.io/fernferret/mediawiki-backup:$(VER)
 
 push: container
 	# Uses external dependency helm-docs
-	docker push ghcr.io/fernferret/mediawiki-backup:latest
+	docker push ghcr.io/fernferret/mediawiki-backup:$(VER)
 
 chart: docs
 	helm package chart
