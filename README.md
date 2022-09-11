@@ -1,6 +1,6 @@
 # About
 
-![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/mediawiki-backup)](https://artifacthub.io/packages/search?repo=mediawiki-backup)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/mediawiki-backup)](https://artifacthub.io/packages/search?repo=mediawiki-backup)
 
 This is a small dockerfile and helm chart to perform backups for
 [MediaWiki](https://www.mediawiki.org/wiki/MediaWiki) installed in Kubernetes.
