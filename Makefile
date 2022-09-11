@@ -4,7 +4,7 @@ docs:
 	# Uses external dependency helm-docs
 	helm-docs
 
-VER := $(shell git describe --abbrev=0 --tags)
+VER := $(shell git describe --always --tags)
 
 container:
 	# Uses external dependency helm-docs
