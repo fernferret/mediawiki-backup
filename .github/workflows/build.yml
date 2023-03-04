@@ -43,12 +43,14 @@ jobs:
           push: true
           tags: ghcr.io/fernferret/mediawiki-backup:${{ github.ref_name }}
 
-      - name: Sign container image
-        run: cosign sign ghcr.io/fernferret/mediawiki-backup@${{ steps.build-and-push.outputs.digest }}
+      - name: Sign image with a key
+        run: |
+          cosign sign --key env://COSIGN_PRIVATE_KEY ghcr.io/fernferret/mediawiki-backup@${{ steps.build-and-push.outputs.digest }}
         env:
-          COSIGN_EXPERIMENTAL: 1
+          COSIGN_PRIVATE_KEY: ${{secrets.COSIGN_PRIVATE_KEY}}
+          COSIGN_PASSWORD: ${{secrets.COSIGN_PASSWORD}}
 
       - name: Verify the pushed tags
-        run: cosign verify ghcr.io/fernferret/mediawiki-backup@${{ steps.build-and-push.outputs.digest }}
+        run: cosign verify --key env://COSIGN_PUBLIC_KEY ghcr.io/n3wt0n/signedcontainer:123
         env:
-          COSIGN_EXPERIMENTAL: 1
+          COSIGN_PUBLIC_KEY: ${{secrets.COSIGN_PRIVATE_KEY}}
