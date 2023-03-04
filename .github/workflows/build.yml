@@ -21,7 +21,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
-      - uses: sigstore/cosign-installer@main
+      - uses: sigstore/cosign-installer@v2
 
       - name: Write signing key to disk (only needed for `cosign sign --key`)
         run: echo "${{ secrets.SIGNING_SECRET }}" > cosign.key
