@@ -46,3 +46,10 @@ jobs:
         run: |
           cosign sign --key cosign.key \
             ghcr.io/fernferret/mediawiki-backup:${{ github.ref_name }}
+        env:
+          COSIGN_EXPERIMENTAL: 1
+
+      - name: Verify the pushed tags
+        run: cosign verify ghcr.io/fernferret/mediawiki-backup:${{ github.ref_name }}
+        env:
+          COSIGN_EXPERIMENTAL: 1
