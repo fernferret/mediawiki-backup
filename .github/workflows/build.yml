@@ -21,10 +21,11 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
-      - uses: sigstore/cosign-installer@v2
+      # TODO: Enable container signing
+      # - uses: sigstore/cosign-installer@v2
 
-      - name: Write signing key to disk (only needed for `cosign sign --key`)
-        run: echo "${{ secrets.SIGNING_SECRET }}" > cosign.key
+      # - name: Write signing key to disk (only needed for `cosign sign --key`)
+      #   run: echo "${{ secrets.SIGNING_SECRET }}" > cosign.key
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
@@ -43,14 +44,15 @@ jobs:
           push: true
           tags: ghcr.io/fernferret/mediawiki-backup:${{ github.ref_name }}
 
-      - name: Sign image with a key
-        run: |
-          cosign sign --key env://COSIGN_PRIVATE_KEY ghcr.io/fernferret/mediawiki-backup@${{ steps.build-and-push.outputs.digest }}
-        env:
-          COSIGN_PRIVATE_KEY: ${{secrets.COSIGN_PRIVATE_KEY}}
-          COSIGN_PASSWORD: ${{secrets.COSIGN_PASSWORD}}
+      # TODO: enable signing
+      # - name: Sign image with a key
+      #   run: |
+      #     cosign sign --key env://COSIGN_PRIVATE_KEY ghcr.io/fernferret/mediawiki-backup@${{ steps.build-and-push.outputs.digest }}
+      #   env:
+      #     COSIGN_PRIVATE_KEY: ${{secrets.COSIGN_PRIVATE_KEY}}
+      #     COSIGN_PASSWORD: ${{secrets.COSIGN_PASSWORD}}
 
-      - name: Verify the pushed tags
-        run: cosign verify --key env://COSIGN_PUBLIC_KEY ghcr.io/n3wt0n/signedcontainer:123
-        env:
-          COSIGN_PUBLIC_KEY: ${{secrets.COSIGN_PRIVATE_KEY}}
+      # - name: Verify the pushed tags
+      #   run: cosign verify --key env://COSIGN_PUBLIC_KEY ghcr.io/n3wt0n/signedcontainer:123
+      #   env:
+      #     COSIGN_PUBLIC_KEY: ${{secrets.COSIGN_PRIVATE_KEY}}
