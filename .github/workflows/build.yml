@@ -38,17 +38,17 @@ jobs:
 
       - name: Build and push
         uses: docker/build-push-action@v4
+        id: build-and-push
         with:
           push: true
           tags: ghcr.io/fernferret/mediawiki-backup:${{ github.ref_name }}
 
       - name: Sign container image
-        run: |
-          cosign sign ghcr.io/fernferret/mediawiki-backup:${{ github.ref_name }}
+        run: cosign sign ghcr.io/fernferret/mediawiki-backup@${{ steps.build-and-push.outputs.digest }}
         env:
           COSIGN_EXPERIMENTAL: 1
 
       - name: Verify the pushed tags
-        run: cosign verify ghcr.io/fernferret/mediawiki-backup:${{ github.ref_name }}
+        run: cosign verify ghcr.io/fernferret/mediawiki-backup@${{ steps.build-and-push.outputs.digest }}
         env:
           COSIGN_EXPERIMENTAL: 1
