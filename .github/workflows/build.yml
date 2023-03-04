@@ -42,7 +42,9 @@ jobs:
         id: build-and-push
         with:
           push: true
-          tags: ghcr.io/fernferret/mediawiki-backup:${{ github.ref_name }}
+          tags: |
+            ghcr.io/fernferret/mediawiki-backup:latest
+            ghcr.io/fernferret/mediawiki-backup:${{ github.ref_name }}
 
       # TODO: enable signing
       # - name: Sign image with a key
