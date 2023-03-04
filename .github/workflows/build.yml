@@ -44,8 +44,7 @@ jobs:
 
       - name: Sign container image
         run: |
-          cosign sign --key cosign.key \
-            ghcr.io/fernferret/mediawiki-backup:${{ github.ref_name }}
+          cosign sign ghcr.io/fernferret/mediawiki-backup:${{ github.ref_name }}
         env:
           COSIGN_EXPERIMENTAL: 1
 
